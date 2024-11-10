@@ -1,0 +1,222 @@
+#include <iostream>
+#include <string>
+#include <cmath>
+#include <cctype>
+#include <stack>
+
+using namespace std;
+
+#define MAX_EXPR_LEN 30
+#define STACK_SIZE 100
+
+struct Node {
+    char value;
+    Node* next;
+};
+
+class Stack {
+    Node* top;
+
+public:
+    Stack() {
+        top = nullptr;
+    }
+
+    bool isEmpty() const {
+        return top == nullptr;
+    }
+
+    void push(char element) {
+        Node* newNode = new Node;
+        newNode->value = element;
+        newNode->next = top;
+        top = newNode;
+    }
+
+    char pop() {
+        if (!isEmpty()) {
+            Node* temp = top;
+            top = top->next;
+            char value = temp->value;
+            delete temp;
+            return value;
+        }
+        cout << "Error: Stack is empty!" << endl;
+        return 0;
+    }
+
+    char peek() const {
+        return top ? top->value : '\0';
+    }
+};
+
+int getPrecedence(char operatorChar);
+void infixToPrefix(const string& infix, string& prefix);
+void infixToPostfix(const string& infix, string& postfix);
+int evaluatePostfix(const string& postfix);
+int evaluatePrefix(const string& prefix);
+int calculate(int operand1, int operand2, char operatorChar);
+bool isOperator(char c);
+bool isValidInfixExpression(const string& infix);
+
+int main() {
+    string infix, prefix, postfix;
+
+    cout << "Enter an infix expression (with operators +, -, *, /, ^, and parentheses): ";
+    cin >> infix;
+
+    if (!isValidInfixExpression(infix)) {
+        cout << "Error: Invalid infix expression!" << endl;
+        return 1;
+    }
+
+    cout << "\nConverting infix to prefix...\n";
+    infixToPrefix(infix, prefix);
+    cout << "Prefix expression: " << prefix << endl;
+    int prefixResult = evaluatePrefix(prefix);
+    cout << "Evaluation of prefix expression result: " << prefixResult << endl;
+
+    cout << "\nConverting infix to postfix...\n";
+    infixToPostfix(infix, postfix);
+    cout << "Postfix expression: " << postfix << endl;
+    int postfixResult = evaluatePostfix(postfix);
+    cout << "Evaluation of postfix expression result: " << postfixResult << endl;
+
+    return 0;
+}
+
+bool isValidInfixExpression(const string& infix) {
+    int openParentheses = 0;
+    int closeParentheses = 0;
+
+    for (char c : infix) {
+        if (c == '(') openParentheses++;
+        if (c == ')') closeParentheses++;
+        if (!isalnum(c) && !isOperator(c) && c != '(' && c != ')') {
+            return false;
+        }
+    }
+    return openParentheses == closeParentheses;
+}
+
+int getPrecedence(char operatorChar) {
+    switch (operatorChar) {
+        case '^': return 3;
+        case '*':
+        case '/': return 2;
+        case '+':
+        case '-': return 1;
+        default: return 0;
+    }
+}
+
+bool isOperator(char c) {
+    return c == '+' || c == '-' || c == '*' || c == '/' || c == '^';
+}
+
+void infixToPrefix(const string& infix, string& prefix) {
+    Stack s;
+    string reversedInfix, result;
+    
+    // Reverse the infix expression
+    for (int i = infix.length() - 1; i >= 0; i--) {
+        reversedInfix += infix[i];
+    }
+
+    // Replace '(' with ')' and ')' with '('
+    for (int i = 0; i < reversedInfix.length(); i++) {
+        if (reversedInfix[i] == '(') {
+            reversedInfix[i] = ')';
+        } else if (reversedInfix[i] == ')') {
+            reversedInfix[i] = '(';
+        }
+    }
+
+    // Convert the modified infix to postfix
+    infixToPostfix(reversedInfix, result);
+
+    // Reverse the result to get the final prefix expression
+    for (int i = result.length() - 1; i >= 0; i--) {
+        prefix += result[i];
+    }
+}
+
+void infixToPostfix(const string& infix, string& postfix) {
+    Stack s;
+    postfix.clear();
+
+    for (char token : infix) {
+        if (isalnum(token)) {
+            postfix += token;
+        } else if (token == '(') {
+            s.push(token);
+        } else if (token == ')') {
+            while (!s.isEmpty() && s.peek() != '(') {
+                postfix += s.pop();
+            }
+            s.pop(); // Pop '('
+        } else if (isOperator(token)) {
+            while (!s.isEmpty() && getPrecedence(s.peek()) >= getPrecedence(token)) {
+                postfix += s.pop();
+            }
+            s.push(token);
+        }
+    }
+
+    // Pop remaining operators from the stack
+    while (!s.isEmpty()) {
+        postfix += s.pop();
+    }
+}
+
+int evaluatePostfix(const string& postfix) {
+    Stack s;
+    int operand1, operand2, result;
+
+    for (char token : postfix) {
+        if (isalnum(token)) {
+            cout << "Enter the value for operand " << token << ": ";
+            cin >> result;
+            s.push(result);
+        } else if (isOperator(token)) {
+            operand2 = s.pop();
+            operand1 = s.pop();
+            result = calculate(operand1, operand2, token);
+            s.push(result);
+        }
+    }
+
+    return s.pop();
+}
+
+int evaluatePrefix(const string& prefix) {
+    Stack s;
+    int operand1, operand2, result;
+
+    for (int i = prefix.length() - 1; i >= 0; i--) {
+        char token = prefix[i];
+        if (isalnum(token)) {
+            cout << "Enter the value for operand " << token << ": ";
+            cin >> result;
+            s.push(result);
+        } else if (isOperator(token)) {
+            operand1 = s.pop();
+            operand2 = s.pop();
+            result = calculate(operand1, operand2, token);
+            s.push(result);
+        }
+    }
+
+    return s.pop();
+}
+
+int calculate(int operand1, int operand2, char operatorChar) {
+    switch (operatorChar) {
+        case '+': return operand1 + operand2;
+        case '-': return operand1 - operand2;
+        case '*': return operand1 * operand2;
+        case '/': return operand1 / operand2;
+        case '^': return (int)pow(operand1, operand2);
+        default: return 0;
+    }
+}
