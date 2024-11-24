@@ -1,0 +1,189 @@
+#include <iostream>
+#include <stack>
+#include <cstring>
+using namespace std;
+
+class TreeNode {
+public:
+    char data;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(char c) : data(c), left(nullptr), right(nullptr) {}
+    TreeNode() : left(nullptr), right(nullptr) {}
+};
+
+class TreeStack {
+    TreeNode* head;
+public:
+    TreeStack() : head(nullptr) {}
+    void push(TreeNode* node) {
+        node->right = head;
+        head = node;
+    }
+    TreeNode* pop() {
+        if (!head) return nullptr;
+        TreeNode* temp = head;
+        head = head->right;
+        return temp;
+    }
+};
+
+bool isOperator(char c) {
+    return (c == '+' || c == '-' || c == '*' || c == '/' || c == '^');
+}
+
+TreeNode* createNode(char value) {
+    return new TreeNode(value);
+}
+
+TreeNode* buildPostfixTree(const char* postfix) {
+    stack<TreeNode*> s;
+    for (int i = 0; i < strlen(postfix); ++i) {
+        if (!isOperator(postfix[i])) {
+            s.push(createNode(postfix[i]));
+        } else {
+            TreeNode* node = createNode(postfix[i]);
+            TreeNode* right = s.top(); s.pop();
+            TreeNode* left = s.top(); s.pop();
+            node->left = left;
+            node->right = right;
+            s.push(node);
+        }
+    }
+    return s.top();
+}
+
+TreeNode* buildPrefixTree(const char* prefix) {
+    stack<TreeNode*> s;
+    for (int i = strlen(prefix) - 1; i >= 0; --i) {
+        if (!isOperator(prefix[i])) {
+            s.push(createNode(prefix[i]));
+        } else {
+            TreeNode* node = createNode(prefix[i]);
+            TreeNode* left = s.top(); s.pop();
+            TreeNode* right = s.top(); s.pop();
+            node->left = left;
+            node->right = right;
+            s.push(node);
+        }
+    }
+    return s.top();
+}
+
+void inorder(TreeNode* root) {
+    if (root) {
+        inorder(root->left);
+        cout << root->data << " ";
+        inorder(root->right);
+    }
+}
+
+void preorder(TreeNode* root) {
+    if (root) {
+        cout << root->data << " ";
+        preorder(root->left);
+        preorder(root->right);
+    }
+}
+
+void postorder(TreeNode* root) {
+    if (root) {
+        postorder(root->left);
+        postorder(root->right);
+        cout << root->data << " ";
+    }
+}
+
+void nonRecursiveInorder(TreeNode* root) {
+    stack<TreeNode*> s;
+    while (root || !s.empty()) {
+        while (root) {
+            s.push(root);
+            root = root->left;
+        }
+        root = s.top(); s.pop();
+        cout << root->data << " ";
+        root = root->right;
+    }
+}
+
+void nonRecursivePreorder(TreeNode* root) {
+    if (!root) return;
+    stack<TreeNode*> s;
+    s.push(root);
+    while (!s.empty()) {
+        TreeNode* node = s.top(); s.pop();
+        cout << node->data << " ";
+        if (node->right) s.push(node->right);
+        if (node->left) s.push(node->left);
+    }
+}
+
+void nonRecursivePostorder(TreeNode* root) {
+    if (!root) return;
+    stack<TreeNode*> s1, s2;
+    s1.push(root);
+    while (!s1.empty()) {
+        TreeNode* node = s1.top(); s1.pop();
+        s2.push(node);
+        if (node->left) s1.push(node->left);
+        if (node->right) s1.push(node->right);
+    }
+    while (!s2.empty()) {
+        cout << s2.top()->data << " ";
+        s2.pop();
+    }
+}
+
+int main() {
+    int choice, traverseChoice;
+    char expr[100], reverseExpr[100];
+    TreeNode* root = nullptr;
+
+    do {
+        cout << "\nChoose expression type to construct tree:\n1) Prefix\n2) Postfix\n3) Exit\nChoice: ";
+        cin >> choice;
+        switch (choice) {
+            case 1:
+                cout << "Enter Prefix Expression: ";
+                cin >> expr;
+                for (int i = strlen(expr) - 1, j = 0; i >= 0; --i, ++j) {
+                    reverseExpr[j] = expr[i];
+                }
+                reverseExpr[strlen(expr)] = '\0';
+                root = buildPrefixTree(reverseExpr);
+                break;
+            case 2:
+                cout << "Enter Postfix Expression: ";
+                cin >> expr;
+                root = buildPostfixTree(expr);
+                break;
+            case 3:
+                cout << "Exiting program.\n";
+                return 0;
+        }
+
+        cout << "Choose traversal method:\n1) Recursive\n2) Non-Recursive\n3) Exit\nChoice: ";
+        cin >> traverseChoice;
+
+        switch (traverseChoice) {
+            case 1:
+                cout << "Inorder: "; inorder(root); cout << "\n";
+                cout << "Preorder: "; preorder(root); cout << "\n";
+                cout << "Postorder: "; postorder(root); cout << "\n";
+                break;
+            case 2:
+                cout << "Inorder: "; nonRecursiveInorder(root); cout << "\n";
+                cout << "Preorder: "; nonRecursivePreorder(root); cout << "\n";
+                cout << "Postorder: "; nonRecursivePostorder(root); cout << "\n";
+                break;
+            case 3:
+                cout << "Exiting traversal choices.\n";
+                break;
+            default:
+                cout << "Invalid choice.\n";
+        }
+
+    } while (choice != 3);
+    return 0;
+}
